@@ -1,31 +1,34 @@
 # Elevated Ad Studio
 
-Elevated is a polished, local-first creative workspace prototype for turning campaign briefs into editable ad concepts. It includes a responsive public website and a functional studio experience that runs without external credentials.
+Elevated turns a campaign brief into a validated 20-second creative strategy, storyboard, and production package. The original polished interface is now backed by Next.js App Router server boundaries and an optional Supabase production mode.
 
-## What works
+## Production scope
 
-- Responsive marketing landing page with product narrative, social proof, workflow, results, and conversion sections
-- Desktop and mobile navigation with accessible controls
-- Studio overview with projects, asset counts, and demo performance indicators
-- Two-step campaign brief flow with required-field validation
-- Deterministic, in-browser concept generation (three structured variants per project)
-- Project editor with live headline and body-copy updates, format and angle controls, concept switching, approvals, copy, and JSON export
-- Projects and brand settings persisted to browser `localStorage`
-- Editable brand name, voice guidance, color and typography direction
-- Creative insights dashboard populated from local project concepts and clearly labeled demo performance data
-- Responsive studio shell, mobile sidebar, and mobile editor layout
+- Responsive public website and protected studio
+- Supabase email/password signup, signin, session refresh, callback, and signout
+- User-owned projects and production packages protected by row-level security
+- Private brand-asset storage with owner-folder policies
+- Server-verified owner admin route; clients cannot grant themselves admin access
+- Five-step brief, audience, message, production, and review wizard
+- Structured creative schema with five sequential scenes totaling exactly 20 seconds
+- OpenAI-compatible server provider interface with timeout and strict schema validation
+- Deterministic production-quality fallback when provider credentials are missing or provider output is invalid
+- Monthly generation quotas and append-only usage events
+- Editable concept, approval, storyboard, production specifications, and JSON package export
+- Accessible loading, error, validation, mobile navigation, and responsive editor states
+- Local demo mode when Supabase is not configured
 
 ## Stack
 
-- React 19
-- TypeScript 6
-- Vite 8
-- Tailwind CSS 4 (design token/tooling layer)
-- React Router 7
-- Lucide icons
-- ESLint 10
+- Next.js 16 App Router and React 19
+- TypeScript 5.9 and Zod
+- Supabase Auth, Postgres, Storage, SSR sessions, migrations, and RLS
+- Tailwind CSS 4 tooling with the preserved custom design system
+- Vitest and ESLint
 
-## Local setup
+The application moved from Vite because authenticated server rendering, protected route handlers, secret-bearing AI calls, and cookie-based Supabase session refresh require trusted server boundaries. The earlier Vite source remains in `src/` as a preserved checkpoint but is excluded from the production build.
+
+## Local demo
 
 Requires Node.js 22+ and npm 10+.
 
@@ -34,29 +37,94 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. No environment variables, external accounts, or paid services are required.
+Open `http://localhost:3000`. Without environment variables, `/studio` clearly runs in local demo mode and generation uses the same deterministic, schema-validated engine.
+
+## Supabase setup
+
+1. Create a Supabase project.
+2. Copy `.env.example` to `.env.local` and set:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+3. Apply the checked-in migration using the Supabase CLI:
+
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+```
+
+The migration creates profiles, projects, versioned creative packages, generation requests, usage telemetry, quota functions, indexes, private asset storage, and all RLS policies.
+
+4. In Supabase Auth URL configuration, add:
+   - Site URL: `http://localhost:3000`
+   - Redirect URL: `http://localhost:3000/auth/callback`
+   - Add equivalent production URLs before release.
+5. Create an account through `/sign-in`.
+
+### Grant owner admin access
+
+Admin cannot be granted from the browser or user API. After creating the intended owner account, run this once in the trusted Supabase SQL editor:
+
+```sql
+update public.profiles
+set is_admin = true
+where id = (
+  select id from auth.users where email = 'owner@example.com'
+);
+```
+
+The `/admin` page performs a fresh server-side user and role check. Without Supabase, it remains locked and does not offer a demo bypass.
+
+## Optional AI provider
+
+Generation works without AI credentials. To use an OpenAI-compatible provider, add server-only variables:
+
+```bash
+AI_API_KEY=...
+AI_MODEL=...
+AI_API_URL=https://api.openai.com/v1/chat/completions
+```
+
+`AI_API_KEY` is only read inside the server route. Client requests are authenticated, quota-checked transactionally, schema-validated, and persisted under the authenticated user. Provider failures or nonconforming storyboards automatically use the deterministic exact-20-second fallback.
 
 ## Checks
 
 ```bash
 npm run lint
+npm run typecheck
+npm test
 npm run build
-# or both
+# all of the above
 npm run check
 ```
 
-## Current limitations
+The engine tests cover deterministic output, schema shape, exact 20-second duration, sequential scenes, and invalid brief rejection.
 
-- Concept generation is deterministic demo logic, not an AI provider integration.
-- Projects and brand settings are browser-local; there is no authentication, database, or team sync.
-- Performance metrics are illustrative and do not connect to ad platforms.
-- Export currently produces structured JSON, not rendered PNG, video, or platform-specific ad packages.
-- Search, messages, project filters, and the studio preview control are presentational foundations.
+## Security notes
 
-## Suggested next steps
+- Server authorization uses `supabase.auth.getUser()`, not unverified cookie claims.
+- RLS restricts every user-owned table and storage path.
+- The anon key is intentionally public; never expose the service-role key.
+- Admin status and usage limits cannot be changed through normal client grants.
+- Quota consumption and generation completion use narrow `security definer` database functions with fixed search paths.
+- AI provider URLs and secrets are server-controlled environment variables, never request input.
 
-1. Add authentication, workspace membership, and durable project storage.
-2. Connect a server-side model gateway for concept generation with structured outputs and moderation.
-3. Add an asset upload pipeline, image generation, and a render/export service.
-4. Integrate ad-platform performance ingestion and replace demo metrics.
-5. Add component and end-to-end regression tests before production release.
+## Remaining limitations
+
+- No live Supabase project was available in this environment, so migrations and live email delivery could not be exercised here.
+- Performance insights remain illustrative; no ad-network ingestion exists.
+- Export returns the complete structured JSON production package, not encoded video or image assets.
+- Brand asset policies and schema are ready, but the current UI does not yet upload files.
+- Search, messages, project filters, and media preview controls remain presentational.
+- Dependency auditing reports no production vulnerabilities. Development-only lint tooling currently reports an upstream `braces` advisory with no patched release available.
+
+## Next production steps
+
+1. Exercise signup, RLS isolation, storage, and migration rollback in a Supabase staging project.
+2. Add Playwright coverage for authenticated wizard, refresh, and cross-user isolation.
+3. Add provider-specific observability, retry policy, and budget alerts.
+4. Build the render queue for captioned MP4 and platform-specific image exports.
+5. Connect real ad-platform metrics and replace illustrative insights.
