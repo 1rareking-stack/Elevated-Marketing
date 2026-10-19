@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { requireAdmin } from '@/lib/supabase/user'
 
 export const metadata: Metadata = { title: 'Owner admin' }
+export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   if (!isSupabaseConfigured()) {

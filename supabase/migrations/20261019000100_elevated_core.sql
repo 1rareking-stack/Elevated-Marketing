@@ -137,6 +137,32 @@ $$;
 revoke all on function public.consume_generation_quota() from public;
 grant execute on function public.consume_generation_quota() to authenticated;
 
+create or replace function public.complete_generation_request(
+  request_id uuid,
+  provider_name text,
+  elapsed_ms integer,
+  fallback_code text default null
+)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  update public.generation_requests
+  set
+    status = 'completed',
+    provider = left(provider_name, 200),
+    duration_ms = greatest(elapsed_ms, 0),
+    completed_at = now(),
+    error_code = fallback_code
+  where id = request_id and user_id = auth.uid();
+
+  if not found then
+    raise exception 'generation request not found';
+  end if;
+end;
+$$;
+
+revoke all on function public.complete_generation_request(uuid, text, integer, text) from public;
+grant execute on function public.complete_generation_request(uuid, text, integer, text) to authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
 alter table public.creative_packages enable row level security;

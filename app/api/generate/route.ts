@@ -101,13 +101,12 @@ export async function POST(request: Request) {
   await Promise.all([
     supabase.from('projects').update({ status: 'ready' }).eq('id', project.id),
     generation
-      ? supabase.from('generation_requests').update({
-          status: 'completed',
-          provider: result.provider,
-          duration_ms: durationMs,
-          completed_at: new Date().toISOString(),
-          error_code: fallbackReason ? 'provider_fallback' : null,
-        }).eq('id', generation.id)
+      ? supabase.rpc('complete_generation_request', {
+          request_id: generation.id,
+          provider_name: result.provider,
+          elapsed_ms: durationMs,
+          fallback_code: fallbackReason ? 'provider_fallback' : null,
+        })
       : Promise.resolve(),
     supabase.from('usage_events').insert({
       user_id: user.id,
