@@ -33,6 +33,7 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { CampaignBrief, CreativePackage } from '@/lib/creative/schema'
 
 const concepts = [
@@ -439,6 +440,7 @@ const studioNav = [
 ] as const
 
 export function StudioPage({ demoMode = false }: { demoMode?: boolean }) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [view, setView] = useState('Overview')
   const [projects, setProjects] = useState<StudioProject[]>(() => {
@@ -525,7 +527,7 @@ export function StudioPage({ demoMode = false }: { demoMode?: boolean }) {
         <div className="sidebar-footer">
           <a href="#settings"><Settings size={18} /> Settings</a>
           <Link href="/"><ArrowRight className="back-arrow" size={18} /> Back to website</Link>
-          {!demoMode && <button className="sign-out-button" onClick={async () => { await fetch('/auth/sign-out', { method: 'POST' }); window.location.assign('/') }}><LogOut size={18} /> Sign out</button>}
+          {!demoMode && <button className="sign-out-button" onClick={async () => { await fetch('/auth/sign-out', { method: 'POST' }); router.push('/'); router.refresh() }}><LogOut size={18} /> Sign out</button>}
           <div className="profile-chip"><span>AK</span><div><strong>Alex Kim</strong><small>Personal workspace</small></div></div>
         </div>
       </aside>
