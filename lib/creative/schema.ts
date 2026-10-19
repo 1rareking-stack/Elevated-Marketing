@@ -7,8 +7,8 @@ export const campaignBriefSchema = z.object({
   objective: z.string().trim().min(1).max(300),
   tone: z.string().trim().min(1).max(300),
   channels: z.array(z.string().trim().min(1).max(50)).min(1).max(8),
-  callToAction: z.string().trim().min(1).max(120),
-  keyBenefit: z.string().trim().min(1).max(500),
+  callToAction: z.string().trim().min(1).max(100),
+  keyBenefit: z.string().trim().min(1).max(150),
   proofPoint: z.string().trim().max(500).default(''),
   visualDirection: z.string().trim().min(1).max(500),
 })

@@ -637,7 +637,13 @@ function CreateView({ onCreate }: { onCreate: (project: StudioProject) => void }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      const data = await response.json() as { error?: string; project?: { id: string }; package?: CreativePackage }
+      const responseText = await response.text()
+      let data: { error?: string; project?: { id: string }; package?: CreativePackage }
+      try {
+        data = JSON.parse(responseText) as typeof data
+      } catch {
+        throw new Error(response.ok ? 'Generation returned an invalid response' : 'The server could not generate this package')
+      }
       if (!response.ok || !data.package) throw new Error(data.error || 'Generation failed')
       const id = data.project?.id ?? `${form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`
       onCreate({
@@ -690,9 +696,9 @@ function CreateView({ onCreate }: { onCreate: (project: StudioProject) => void }
           </>
         ) : step === 3 ? (
           <>
-            <label>Single most important benefit<textarea required value={form.keyBenefit} onChange={(event) => update('keyBenefit', event.target.value)} placeholder="What should the audience remember?" rows={3} /></label>
+            <label>Single most important benefit<textarea required maxLength={150} value={form.keyBenefit} onChange={(event) => update('keyBenefit', event.target.value)} placeholder="What should the audience remember?" rows={3} /><small>{form.keyBenefit.length}/150</small></label>
             <label>Proof point<textarea value={form.proofPoint} onChange={(event) => update('proofPoint', event.target.value)} placeholder="Evidence or claim support (optional)" rows={3} /></label>
-            <label>Call to action<input required value={form.callToAction} onChange={(event) => update('callToAction', event.target.value)} /></label>
+            <label>Call to action<input required maxLength={100} value={form.callToAction} onChange={(event) => update('callToAction', event.target.value)} /></label>
           </>
         ) : step === 4 ? (
           <>

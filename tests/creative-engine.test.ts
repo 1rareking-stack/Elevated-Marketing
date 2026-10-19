@@ -42,4 +42,8 @@ describe('creative engine', () => {
   it('rejects a brief without at least one distribution channel', () => {
     expect(() => campaignBriefSchema.parse({ ...brief, channels: [] })).toThrow()
   })
+
+  it('rejects benefit copy that cannot fit the production headline', () => {
+    expect(() => campaignBriefSchema.parse({ ...brief, keyBenefit: 'x'.repeat(151) })).toThrow()
+  })
 })
